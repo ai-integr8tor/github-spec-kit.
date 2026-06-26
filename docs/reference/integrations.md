@@ -54,6 +54,35 @@ Shows all available integrations, which one is currently installed, and whether 
 When multiple integrations are installed, the list marks the default integration separately from the other installed integrations.
 The list also shows whether each built-in integration is declared multi-install safe.
 
+## Search Available Integrations
+
+```bash
+specify integration search [query]
+```
+
+| Option       | Description                          |
+| ------------ | ------------------------------------ |
+| `--tag`      | Filter by tag                        |
+| `--author`   | Filter by author                     |
+
+Searches the catalog for integrations matching the query. Without a query, lists all available integrations.
+
+## Integration Info
+
+```bash
+specify integration info <key>
+```
+
+Shows catalog information for an integration, including its description, author, repository, and tags.
+
+## Scaffold a New Integration
+
+```bash
+specify integration scaffold <key>
+```
+
+Creates a minimal integration stub for the given key.
+
 ## Install an Integration
 
 ```bash
