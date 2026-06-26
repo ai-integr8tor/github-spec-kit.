@@ -65,12 +65,12 @@ specify integration search [query]
 | `--tag`      | Filter by tag                        |
 | `--author`   | Filter by author                     |
 
-Searches the catalog for integrations matching the query. Without a query, lists all available integrations.
+Searches all active catalogs for integrations matching the query. Without a query, lists all available integrations.
 
 ## Integration Info
 
 ```bash
-specify integration info <key>
+specify integration info <integration_id>
 ```
 
 Shows catalog information for an integration, including its description, author, repository, and tags.
@@ -78,10 +78,14 @@ Shows catalog information for an integration, including its description, author,
 ## Scaffold a New Integration
 
 ```bash
-specify integration scaffold <key>
+specify integration scaffold [options] <integration_id>
 ```
 
-Creates a minimal integration stub for the given key.
+| Option   | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `--type` | The type of integration to scaffold (default: `markdown`) |
+
+Creates a minimal integration stub for the given integration ID.
 
 ## Install an Integration
 
