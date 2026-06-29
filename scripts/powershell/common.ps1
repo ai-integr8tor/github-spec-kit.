@@ -182,6 +182,15 @@ function Get-FeaturePathsEnv {
         exit 1
     }
     
+    # When no branch context exists (no SPECIFY_FEATURE, feature resolved via
+    # SPECIFY_FEATURE_DIRECTORY or feature.json), fall back to the feature
+    # directory basename so CURRENT_BRANCH is a usable identifier rather than
+    # an empty, misleading value (issue #3026).
+    if (-not $currentBranch) {
+        $featureDirTrimmed = [System.IO.Path]::TrimEndingDirectorySeparator($featureDir)
+        $currentBranch = Split-Path -Leaf $featureDirTrimmed
+    }
+
     [PSCustomObject]@{
         REPO_ROOT     = $repoRoot
         CURRENT_BRANCH = $currentBranch
