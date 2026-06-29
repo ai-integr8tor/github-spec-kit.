@@ -794,23 +794,57 @@ def _download_remote_manifest(entry_id: str, url: str):
     import tempfile
 
     from ...authentication.http import open_url
+    from ..._github_http import resolve_github_release_asset_api_url
 
     def _validate_redirect(old_url: str, new_url: str) -> None:
         _require_https(f"bundle '{entry_id}'", new_url)
 
     _require_https(f"bundle '{entry_id}'", url)
+
+    # For private/SSO-protected GitHub repos, browser release download URLs
+    # (https://github.com/<owner>/<repo>/releases/download/<tag>/<asset>)
+    # redirect to an HTML/SSO page instead of delivering the asset.  Resolve
+    # such URLs to the GitHub REST API asset URL so the authenticated client
+    # can download the actual file.
+    extra_headers = None
+    effective_url = url
+    resolved = resolve_github_release_asset_api_url(url, open_url, timeout=30)
+    if resolved:
+        effective_url = resolved
+        extra_headers = {"Accept": "application/octet-stream"}
+
     try:
-        with open_url(url, timeout=30, redirect_validator=_validate_redirect) as resp:
+        with open_url(
+            effective_url,
+            timeout=30,
+            redirect_validator=_validate_redirect,
+            extra_headers=extra_headers,
+        ) as resp:
             _require_https(f"bundle '{entry_id}'", resp.geturl())
             raw = resp.read()
     except BundlerError:
         raise
     except Exception as exc:  # noqa: BLE001
-        raise BundlerError(f"Failed to download bundle '{entry_id}' from {url}: {exc}") from exc
+        # Report the original catalog URL so users know which entry to fix,
+        # and include the resolved URL when it differs for easier debugging.
+        if effective_url != url:
+            msg = f"Failed to download bundle '{entry_id}' from {url} (resolved to {effective_url}): {exc}"
+        else:
+            msg = f"Failed to download bundle '{entry_id}' from {url}: {exc}"
+        raise BundlerError(msg) from exc
 
     # A .zip artifact is written to a temp file and parsed via the local-source
     # path (which extracts bundle.yml); any other payload is treated as YAML.
-    if url.lower().endswith(".zip"):
+    # Detection uses the original catalog URL's extension when available (browser
+    # release URLs carry the filename), and falls back to the 4-byte ZIP magic
+    # for direct REST API asset URLs which have no file extension.  The three
+    # recognised signatures cover all valid ZIP variants without the false-positive
+    # risk of a 2-byte ``PK`` prefix check:
+    #   PK\x03\x04 — local file header (standard ZIP)
+    #   PK\x05\x06 — end-of-central-directory (empty archive)
+    #   PK\x07\x08 — data descriptor / spanning marker
+    _ZIP_SIGNATURES = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
+    if url.lower().endswith(".zip") or raw[:4] in _ZIP_SIGNATURES:
         with tempfile.TemporaryDirectory() as tmp:
             artifact = Path(tmp) / "bundle.zip"
             artifact.write_bytes(raw)
