@@ -44,7 +44,6 @@ ISSUE_TEMPLATE_AGENT_KEYS = [
     "shai",
     "tabnine",
     "trae",
-    "windsurf",
     "zcode",
     "zed",
 ]
