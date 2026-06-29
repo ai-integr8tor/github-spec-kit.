@@ -230,7 +230,20 @@ def register(app: typer.Typer) -> None:
                         "[cyan]--force supplied: skipping confirmation and proceeding with merge[/cyan]"
                     )
                 else:
-                    response = typer.confirm("Do you want to continue?")
+                    try:
+                        response = typer.confirm("Do you want to continue?")
+                    except (typer.Abort, EOFError):
+                        # No confirmation input available (non-interactive session
+                        # with empty stdin): fail fast with actionable guidance
+                        # instead of the bare "Aborted." Piped input (e.g. "y") is
+                        # still honored above. Mirrors the named-project path,
+                        # which already points to --force.
+                        console.print(
+                            "[red]Error:[/red] Current directory is not empty and no "
+                            "confirmation input is available. Re-run with "
+                            "[bold]--force[/bold] to merge into it."
+                        )
+                        raise typer.Exit(1) from None
                     if not response:
                         console.print("[yellow]Operation cancelled[/yellow]")
                         raise typer.Exit(0)
